@@ -817,6 +817,7 @@ struct user_settings
 #ifdef HAVE_QUICKSCREEN
     bool shortcuts_replaces_qs;
 #endif
+    int volume_limit; /* maximum volume limit */
 };
 
 /** global variables **/
