@@ -517,7 +517,6 @@ void root_menu_load_from_cfg(void* setting, char *value)
 {
     char *next = value, *start, *end;
     unsigned int menu_item_count = 0, i;
-    bool main_menu_added = false;
 
     if (*value == '-')
     {
@@ -545,14 +544,10 @@ void root_menu_load_from_cfg(void* setting, char *value)
             if (*start && !strcmp(start, menu_table[i].string))
             {
                 root_menu__[menu_item_count++] = (struct menu_item_ex *)menu_table[i].item;
-                if (menu_table[i].item == &menu_)
-                    main_menu_added = true;
                 break;
             }
         }
     }
-    if (!main_menu_added)
-        root_menu__[menu_item_count++] = (struct menu_item_ex *)&menu_;
     root_menu_.flags |= MENU_ITEM_COUNT(menu_item_count);
     *(bool*)setting = true;
 }

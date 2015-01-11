@@ -1007,20 +1007,6 @@ MENUITEM_FUNCTION(pitch_screen_item, 0, ID2P(LANG_PITCH),
 
 /* CONTEXT_[TREE|ID3DB] items */
 static int clipboard_callback(int action,const struct menu_item_ex *this_item);
-MENUITEM_FUNCTION(rename_file_item, 0, ID2P(LANG_RENAME),
-                  rename_file, NULL, clipboard_callback, Icon_NOICON);
-MENUITEM_FUNCTION(clipboard_cut_item, 0, ID2P(LANG_CUT),
-                  clipboard_cut, NULL, clipboard_callback, Icon_NOICON);
-MENUITEM_FUNCTION(clipboard_copy_item, 0, ID2P(LANG_COPY),
-                  clipboard_copy, NULL, clipboard_callback, Icon_NOICON);
-MENUITEM_FUNCTION(clipboard_paste_item, 0, ID2P(LANG_PASTE),
-                  clipboard_paste, NULL, clipboard_callback, Icon_NOICON);
-MENUITEM_FUNCTION(delete_file_item, 0, ID2P(LANG_DELETE),
-                  delete_file_dir, NULL, clipboard_callback, Icon_NOICON);
-MENUITEM_FUNCTION(delete_dir_item, 0, ID2P(LANG_DELETE_DIR),
-                  delete_file_dir, NULL, clipboard_callback, Icon_NOICON);
-MENUITEM_FUNCTION(create_dir_item, 0, ID2P(LANG_CREATE_DIR),
-                  create_dir, NULL, clipboard_callback, Icon_NOICON);
 
 /* other items */
 static bool list_viewers(void)
@@ -1039,8 +1025,6 @@ static bool onplay_load_plugin(void *param)
     return false;
 }
 
-MENUITEM_FUNCTION(list_viewers_item, 0, ID2P(LANG_ONPLAY_OPEN_WITH),
-                  list_viewers, NULL, clipboard_callback, Icon_NOICON);
 MENUITEM_FUNCTION(properties_item, MENU_FUNC_USEPARAM, ID2P(LANG_PROPERTIES),
                   onplay_load_plugin, (void *)"properties",
                   clipboard_callback, Icon_NOICON);
@@ -1093,18 +1077,6 @@ static int clipboard_callback(int action,const struct menu_item_ex *this_item)
     switch (action)
     {
         case ACTION_REQUEST_MENUITEM:
-#ifdef HAVE_MULTIVOLUME
-            if ((selected_file_attr & FAT_ATTR_VOLUME) &&
-                (this_item == &rename_file_item ||
-                 this_item == &delete_dir_item ||
-                 this_item == &clipboard_cut_item) )
-                return ACTION_EXIT_MENUITEM;
-            /* no rename+delete for volumes */
-            if ((selected_file_attr & ATTR_VOLUME) &&
-                 (this_item == &delete_file_item ||
-                  this_item == &list_viewers_item))
-                return ACTION_EXIT_MENUITEM;
-#endif
 #ifdef HAVE_TAGCACHE
             if (context == CONTEXT_ID3DB)
             {
@@ -1115,23 +1087,10 @@ static int clipboard_callback(int action,const struct menu_item_ex *this_item)
                 return ACTION_EXIT_MENUITEM;
             }
 #endif
-            if (this_item == &clipboard_paste_item)
-            {  /* visible if there is something to paste */
-                return (clipboard_selection[0] != 0) ?
-                                    action : ACTION_EXIT_MENUITEM;
-            }
-            else if (this_item == &create_dir_item)
-            {
-                /* always visible */
-                return action;
-            }
             else if (selected_file)
             {
                 /* requires an actual file */
-                if (this_item == &rename_file_item ||
-                    this_item == &clipboard_cut_item ||
-                    this_item == &clipboard_copy_item ||
-                    this_item == &properties_item ||
+                if (this_item == &properties_item ||
                     this_item == &add_to_faves_item)
                 {
                     return action;
@@ -1139,7 +1098,7 @@ static int clipboard_callback(int action,const struct menu_item_ex *this_item)
                 else if ((selected_file_attr & ATTR_DIRECTORY))
                 {
                     /* only for directories */
-                    if (this_item == &delete_dir_item ||
+                    if (
                         this_item == &set_startdir_item ||
                         this_item == &set_catalogdir_item
 #ifdef HAVE_RECORDING
@@ -1147,12 +1106,6 @@ static int clipboard_callback(int action,const struct menu_item_ex *this_item)
 #endif
                         )
                         return action;
-                }
-                else if (this_item == &delete_file_item ||
-                         this_item == &list_viewers_item)
-                {
-                    /* only for files */
-                    return action;
                 }
 #if LCD_DEPTH > 1
                 else if (this_item == &set_backdrop_item)
@@ -1179,7 +1132,6 @@ static int onplaymenu_callback(int action,const struct menu_item_ex *this_item);
 MAKE_ONPLAYMENU( wps_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
            onplaymenu_callback, Icon_Audio,
            &wps_playlist_menu, &cat_playlist_menu,
-           &sound_settings, &playback_settings,
 #ifdef HAVE_TAGCACHE
            &rating_item,
 #endif
@@ -1187,8 +1139,8 @@ MAKE_ONPLAYMENU( wps_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
 #ifdef HAVE_PICTUREFLOW_INTEGRATION
            &pictureflow_item,
 #endif           
-           &browse_id3_item, &list_viewers_item,
-           &delete_file_item, &view_cue_item,
+           &browse_id3_item,
+           &view_cue_item,
 #ifdef HAVE_PITCHCONTROL
            &pitch_screen_item,
 #endif
@@ -1197,12 +1149,10 @@ MAKE_ONPLAYMENU( wps_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
 MAKE_ONPLAYMENU( tree_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
            onplaymenu_callback, Icon_file_view_menu,
            &tree_playlist_menu, &cat_playlist_menu,
-           &rename_file_item, &clipboard_cut_item, &clipboard_copy_item,
-           &clipboard_paste_item, &delete_file_item, &delete_dir_item,
 #if LCD_DEPTH > 1
            &set_backdrop_item,
 #endif
-           &list_viewers_item, &create_dir_item, &properties_item,
+           &properties_item,
 #ifdef HAVE_RECORDING
            &set_recdir_item,
 #endif
@@ -1228,17 +1178,6 @@ static int onplaymenu_callback(int action,const struct menu_item_ex *this_item)
 
 #ifdef HAVE_HOTKEY
 /* direct function calls, no need for menu callbacks */
-static bool delete_item(void)
-{
-#ifdef HAVE_MULTIVOLUME
-    /* no delete for volumes */
-    if ((selected_file_attr & FAT_ATTR_VOLUME) ||
-        (selected_file_attr & ATTR_VOLUME))
-        return false;
-#endif
-    return delete_file_dir();
-}
-
 static bool open_with(void)
 {
     /* only open files */
@@ -1288,12 +1227,6 @@ static struct hotkey_assignment hotkey_items[] = {
             HOTKEY_FUNC(gui_syncpitchscreen_run, NULL),
             ONPLAY_RELOAD_DIR },
 #endif
-    { HOTKEY_OPEN_WITH,         LANG_ONPLAY_OPEN_WITH,
-            HOTKEY_FUNC(open_with, NULL),
-            ONPLAY_RELOAD_DIR },
-    { HOTKEY_DELETE,            LANG_DELETE,
-            HOTKEY_FUNC(delete_item, NULL),
-            ONPLAY_RELOAD_DIR },
     { HOTKEY_INSERT,            LANG_INSERT,
             HOTKEY_FUNC(playlist_insert_func, (intptr_t*)PLAYLIST_INSERT),
             ONPLAY_RELOAD_DIR },
